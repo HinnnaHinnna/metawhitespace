@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>메타공백; 두억시니의 낭독</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    /* @font-face {
+      font-family: 'SM3세명조';
+      src: url('./SM3세명조-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+      letter-spacing: -2px;
+    } */
+
+    /* @font-face {
+      font-family: 'JSongMyung-Regular-KO';
+      src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2110@1.0/JSongMyung-Regular-KO.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+    } */
+
+    /* @font-face {
+      font-family: 'Eulyoo1945-Regular';
+      src: url('./Eulyoo1945-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+      letter-spacing: -2px;
+    } */
+
+    /* @font-face {
+      font-family: 'MapoFlowerIsland';
+      src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/MapoFlowerIslandA.woff') format('woff');
+      font-weight: normal;
+      font-style: normal;
+    } */
+
+    @font-face {
+      font-family: 'MapoGoldenPier';
+      src: url('https://gcore.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/MapoGoldenPierA.woff') format('woff');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      /* 스크롤 없애기 */
+    }
+
+    body {
+      font-family: 'MapoGoldenPier', 'Noto Sans KR', sans-serif;
+      background: #f0f0f0;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .text-output {
+      font-size: 1.2rem;
+      white-space: pre-wrap;
+      padding: 1.8rem;
+      padding-top: 20%;
+      min-height: 1200px;
+      max-width: 600px;
+      width: 100%;
+      text-align: left;
+      line-height: 1.9;
+      box-sizing: border-box;
+      overflow-wrap: break-word;
+      word-break: keep-all;
+      transition: padding 0.3s ease;
+    }
+
+    .char {
+      display: inline-block;
+      -webkit-text-stroke-color: black;
+      color: black;
+      -webkit-text-stroke-linejoin: round;
+      -webkit-text-stroke-linecap: round;
+    }
+
+    .bit-space {
+      color: transparent;
+      cursor: help;
+    }
+  </style>
+</head>
+
+<body>
+
+  <body onclick="location.reload()">
+
+    <div class="text-output" id="outputText"></div>
+
+    <script>
+      const poems = [
+        `사라지고 있는 것은 대체 무엇인가? 바로 시이다. 살아 있는 움직이는 시. 파고 파내도 끝이 없는 이야기. 이야기와 동물과 시이다. 세 가지 단어이지만, 하나라고 볼 수도 있다. 동물이야말로 가장 생태적으로 함축적인 존재이기 때문이다. 그리고 살아 있는 일 분, 일 초마다 이야기가 피어나오기 때문이다. 말과 말들에서 발췌한 김산하의 절멸 중`,
+        `좋아, 하지만 당신 자신도 이건 악순환이라는 걸 인정해야 할 거야. 돌이킬 수 없는 일은 모두 위대해. 죽음과 첫사랑과 동정의 상실과 기타 등등 그런 종류의 일들이 위대한 이유는 오로지 그 때문이야. 몇 번씩 되풀이할 수 있는 일은 모두 그로 인해서 좀스러워지는 거야. (구름 사이로 약한 달빛의 반짝임이 눈에 띄기 시작한다.) 당신은 돌이킬 수 없는 일은 아무것도 하지 않으려고 하면서 위대함을 원하잖아. 말과 말들에서 발췌한 스타니스와프 이그나찌 비트키에비치의 쇠물닭 중`,
+        `이 모든 것은 여담일 뿐, 내 정신이 오락가락한다고 생각하지는 않았으면 좋겠다. 내 정신은 오락가락하지만 내가 바라는 것 이상으로 그러지는 않는다.\n\n 말과 말들에서 발췌한 리어노라 캐링턴의 귀나팔`,
+        `의미 없는 노성을 토하며 두억시니들은 끊임없이 두 손으로, 혹 손이 없을 경우에는 입으로 물을 머금어 강물을 ‘파내었다.’ 당연한 일이지만 같은 부피의 흙에 대해서라면 소용이 있었을 그 방법도 거세게 흐르는 급류에는 아무런 영향을 끼치지 못하고 있었다. 두억시니들은 아무리 퍼내어도 줄어들지 않는 강물에 난처해하고 분노했다. 그러나 두억시니는 그 짓을 멈추지 않았다. 수백의 두억시니가 강변에 몰려서서 강물을 퍼내고 있었고 그보다 많은 두억시니들이 그들의 배후에서 의미를 빚지 못하는 단어들로 주위를 소란스럽게 만들고 있었다. 무익한 목적에 바쳐진 과도한 노고가 자아내는 것은 웃음이나 슬픔뿐이다. \n\n김영도의 눈물을 마시는새 중`,
+        `네 발바닥 즐거운! 푸르다! 손! 밤! 아홉의 오른쪽 물거품! 심심한 장미를 콧구멍에-! 딱딱하게 끊는 망치 바르면! \n\n김영도의 눈물을 마시는새 중 두억시니의 대사 모음`
+      ];
+
+      const selectedPoem = poems[Math.floor(Math.random() * poems.length)];
+      const output = document.getElementById("outputText");
+
+      const whitespaceHexMap = {
+        '\u200B': '0',
+        '\u200C': '1',
+        '\u200D': '2',
+        '\u2060': '3',
+        '\u00A0': '4',
+        '\u2002': '5',
+        '\u2003': '6',
+        '\u2004': '7',
+        '\u2005': '8',
+        '\u2006': '9',
+        '\u2007': 'a',
+        '\u2008': 'b',
+        '\u2009': 'c',
+        '\u200A': 'd',
+        '\u202F': 'e',
+        '\u205F': 'f'
+      };
+      const whitespaceChars = Object.keys(whitespaceHexMap);
+      const SPACE_FONT_SIZE = '1rem';
+
+      let displayChars = selectedPoem.split('').map(ch => ({ char: ch, stroke: 0, isSpace: false }));
+      let hexQueue = [];
+      let strokeCounter = 1;
+
+      function getRandomBitSpace() {
+        const char = whitespaceChars[Math.floor(Math.random() * whitespaceChars.length)];
+        const hex = whitespaceHexMap[char];
+        return {
+          isSpace: true,
+          hex,
+          html: `<span class="bit-space" title="hex: ${hex}" style="font-size:${SPACE_FONT_SIZE};">${char}</span>`
+        };
+      }
+
+      function updateDisplay() {
+        output.innerHTML = displayChars.map(obj => {
+          if (obj.isSpace) return obj.html;
+          const stroke = Math.min(obj.stroke || 0, 5);
+          const blur = stroke * 5;
+          return `<span class="char" style="-webkit-text-stroke-width: ${stroke}px; filter: blur(${blur}px);">${obj.char}</span>`;
+        }).join('');
+
+        const blurredChars = displayChars.filter(obj => !obj.isSpace && obj.stroke >= 10).length;
+        const totalChars = displayChars.filter(obj => !obj.isSpace).length;
+
+        if (blurredChars === totalChars && totalChars > 0) {
+          setTimeout(() => location.reload(), 1000);
+        }
+      }
+
+
+      function shakeTextOutput() {
+        const left = Math.floor(Math.random() * 30);
+        const right = Math.floor(Math.random() * 30);
+        output.style.paddingLeft = `${left}px`;
+        output.style.paddingRight = `${right}px`;
+      }
+
+      function changeColorWithRhythm() {
+        const beatTimings = [2000, 800, 800];
+        let beatIndex = 0;
+
+        function nextBeat() {
+          const r = Math.floor(Math.random() * 255);
+          const g = Math.floor(Math.random() * 255);
+          const b = Math.floor(Math.random() * 255);
+          document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+
+          shakeTextOutput();
+
+          const total = displayChars.length;
+          for (let i = 0; i < strokeCounter; i++) {
+            const index = total - 1 - i;
+            const obj = displayChars[index];
+            if (obj && !obj.isSpace) {
+              obj.stroke = Math.min(obj.stroke + 1, 10);
+            }
+          }
+
+          strokeCounter++;
+          updateDisplay();
+
+          setTimeout(() => {
+            beatIndex = (beatIndex + 1) % beatTimings.length;
+            nextBeat();
+          }, beatTimings[beatIndex]);
+        }
+
+        nextBeat();
+      }
+
+      function insertRandomBitSpace() {
+        const spaceObj = getRandomBitSpace();
+
+        if (displayChars.length > 0 && displayChars[displayChars.length - 1].isSpace) {
+          displayChars.pop();
+        }
+
+        const insertIndex = Math.floor(Math.random() * (displayChars.length - 1));
+        displayChars.splice(insertIndex, 0, spaceObj);
+
+        hexQueue.push(spaceObj.hex);
+
+        if (hexQueue.length === 4) {
+          const randomChar = selectedPoem[Math.floor(Math.random() * selectedPoem.length)];
+          displayChars.splice(insertIndex, 4, {
+            isSpace: false,
+            char: randomChar,
+            stroke: 10
+          });
+          hexQueue = [];
+        }
+
+        updateDisplay();
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = "ko-KR";
+      recognition.continuous = true;
+      recognition.interimResults = false;
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        for (let spokenChar of transcript) {
+          for (let i = 0; i < displayChars.length; i++) {
+            const obj = displayChars[i];
+            if (!obj.isSpace && obj.char === spokenChar) {
+              const spaceObj = getRandomBitSpace();
+              displayChars[i] = spaceObj;
+              hexQueue.push(spaceObj.hex);
+
+              if (hexQueue.length === 4) {
+                const randomChar = selectedPoem[Math.floor(Math.random() * selectedPoem.length)];
+                displayChars.splice(i - 3, 4, {
+                  isSpace: false,
+                  char: randomChar,
+                  stroke: 0
+                });
+                hexQueue = [];
+              }
+              break;
+            }
+          }
+        }
+        updateDisplay();
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+      };
+
+      recognition.onend = () => {
+        recognition.start();
+      };
+
+      function startRecognition() {
+        updateDisplay();
+        recognition.start();
+        changeColorWithRhythm();
+        setInterval(insertRandomBitSpace, 2100);
+      }
+
+      window.onload = startRecognition;
+
+    </script>
+  </body>
+
+</html>
