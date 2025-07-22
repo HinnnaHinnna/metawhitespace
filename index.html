@@ -64,40 +64,52 @@
       position: absolute;
       color: rgba(0, 0, 0, 0);
     }
+
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      text-align: left;
+      font-size: 0.8rem;
+      font-weight: 300;
+      padding: 1rem;
+      font-family: 'Noto Sans KR';
+    }
   </style>
 </head>
 
 <body onclick="location.reload()">
 
   <div class="text-output" id="outputText"></div>
+  <footer>소리내어 읽어 보세요</footer>
 
   <script>
+    const MAX_STROKE = 2;
+    const BLUR_MULTIPLIER = 20;
+    const BIT_INTERVAL_MS = 1000;
+
+    let isAllBlurred = false;
+
     const poems = [
       `의미 없는 노성을 토하며 두억시니들은 끊임없이 두 손으로, 혹 손이 없을 경우에는 입으로 물을 머금어 강물을 ‘파내었다.’ 당연한 일이지만 같은 부피의 흙에 대해서라면 소용이 있었을 그 방법도 거세게 흐르는 급류에는 아무런 영향을 끼치지 못하고 있었다.두억시니들은 아무리 퍼내어도 줄어들지 않는 강물에 난처해하고 분노했다. 그러나 두억시니는 그 짓을 멈추지 않았다. 수백의 두억시니가 강변에 몰려서서 강물을 퍼내고 있었고 그보다 많은 두억시니들이 그들의 배후에서 의미를 빚지 못하는 단어들로 주위를 소란스럽게 만들고 있었다. 무익한 목적에 바쳐진 과도한 노고가 자아내는 것은 웃음이나 슬픔뿐이다.\n이영도의 눈물을 마시는 새 중 발췌`,
-      `네 발바닥 즐거운! 푸르다! 손! 밤! 아홉의 오른쪽 물거품!`,
-      `심심한 장미를 콧구멍에-!`,
-      `딱딱하게 끊는 망치 바르면!`,
-      `무거운 해 늙어 태어나면 개나리 웃지요`,
-      `크낙새 뿌리 무침? 파란 냄새 삼각형!`,
-      `팔짝 뛰는 토끼색 칠한 재채기 세 쌍만 던져!`,
-      `‘의미를 빚지 못한 단어로 이루어진’ 글들은 두억시니의 말이다. 두억시니는 소설 ‘눈물을 마시는 새’에 등장하는 신을 잃은 종족이다. 이 종족은 이치에 어긋난 육체와 공백으로 얼룩진 정신을 가졌다. 종족 모두의 정신은 서로 연결되었으며 스스로를 ‘나’들이라고 지칭한다. 소설 속 두억시니처럼 본 글을 쓴 글쓴이와 글을 낭독을 하는 화자이자 독자는 의미를 빚지 못하는 글을 통해 두억시니같은 ‘나’들이 된다. \n메타공백의 글쓴이 생각`,
+      `네 발바닥 즐거운! 푸르다! 손! 밤! 아홉의 오른쪽 물거품!  `,
+      `심심한 장미를 콧구멍에-!  `,
+      `딱딱하게 끊는 망치 바르면!  `,
+      `무거운 해 늙어 태어나면 개나리 웃지요.  `,
+      `크낙새 뿌리 무침? 파란 냄새 삼각형!  `,
+      `팔짝 뛰는 토끼색 칠한 재채기 세 쌍만 던져!  `,
+      `“의미를 빚지 못한 단어로 이루어진” 글들은 두억시니의 대사이다. 두억시니는 소설 ‘눈물을 마시는 새’에 등장하는 신을 잃은 종족이다. 이 종족은 이치에 어긋난 육체와 공백으로 얼룩진 정신을 가졌다. 두억시니 모두의 정신은 서로 연결되었으며 스스로를 ‘나’들이라고 지칭한다. 소설 속 두억시니처럼 본 글을 쓴 글쓴이와 글을 낭독을 하는 화자이자 독자는 의미를 되지 못한 글을 통해 두억시니같은 ‘나’들이 된다. \n메타공백의 글쓴이 생각`,
     ];
+    let shown = JSON.parse(localStorage.getItem('shownPoemIndexes')) || [];
+    if (shown.length >= poems.length) shown = [];
+    const avail = poems.map((_, i) => i).filter(i => !shown.includes(i));
+    const idx = avail[Math.floor(Math.random() * avail.length)];
+    shown.push(idx);
+    localStorage.setItem('shownPoemIndexes', JSON.stringify(shown));
+    const selectedPoem = poems[idx];
 
-    let shownIndexes = JSON.parse(localStorage.getItem('shownPoemIndexes')) || [];
-
-    if (shownIndexes.length >= poems.length) {
-      shownIndexes = [];
-    }
-
-    const availableIndexes = poems.map((_, i) => i).filter(i => !shownIndexes.includes(i));
-    const randomIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
-    shownIndexes.push(randomIndex);
-    localStorage.setItem('shownPoemIndexes', JSON.stringify(shownIndexes));
-
-    const selectedPoem = poems[randomIndex];
     const output = document.getElementById("outputText");
-
-
     const whitespaceHexMap = {
       '\u200B': '0', '\u200C': '1', '\u200D': '2', '\u2060': '3',
       '\u00A0': '4', '\u2002': '5', '\u2003': '6', '\u2004': '7',
@@ -108,101 +120,83 @@
 
     let displayChars = selectedPoem.split('').map(ch => ({ char: ch, stroke: 0, isSpace: false }));
     let hexQueue = [];
+    let bitInterval;
 
     function getRandomBitSpace() {
-      const char = whitespaceChars[Math.floor(Math.random() * whitespaceChars.length)];
-      const hex = whitespaceHexMap[char];
+      const ch = whitespaceChars[Math.floor(Math.random() * whitespaceChars.length)];
+      const hx = whitespaceHexMap[ch];
       return {
         isSpace: true,
-        hex,
-        html: `<span class="bit-space space-${hex}" title="hex: ${hex}">${char}</span>`
+        hex: hx,
+        html: `<span class="bit-space" title="hex: ${hx}">${ch}</span>`
       };
     }
 
-
     function updateDisplay() {
-      output.innerHTML = displayChars.map(obj => {
-        if (obj.isSpace) return obj.html;
-        const stroke = Math.min(obj.stroke || 0, 3);
-        const blur = stroke * 10;
-        if (obj.char === '\n') return '<br>';
-        return `<span class="char" style="-webkit-text-stroke-width: ${stroke}px; filter: blur(${blur}px);">${obj.char}</span>`;
+      output.innerHTML = displayChars.map(o => {
+        if (o.isSpace) return o.html;
+        const strokePx = Math.min(o.stroke, MAX_STROKE);
+        const blurPx = strokePx * BLUR_MULTIPLIER;
+        if (o.char === '\n') return '<br>';
+        return `<span class="char" style="-webkit-text-stroke-width:${strokePx}px; filter: blur(${blurPx}px)">${o.char}</span>`;
       }).join('');
 
-      const blurredChars = displayChars.filter(obj => !obj.isSpace && obj.stroke >= 10).length;
-      const totalChars = displayChars.filter(obj => !obj.isSpace).length;
+      const total = displayChars.filter(o => !o.isSpace).length;
+      const blurred = displayChars.filter(o => !o.isSpace && o.stroke >= MAX_STROKE).length;
 
-      if (blurredChars === totalChars && totalChars > 0) {
-        setTimeout(() => location.reload(), 1000);
+      if (!isAllBlurred && total > 0 && blurred === total) {
+        isAllBlurred = true;
+        clearInterval(bitInterval);
+        recognition.stop();
+        location.reload();
       }
-    }
-
-    function shakeTextOutput() {
-      const left = Math.floor(Math.random() * 30);
-      const right = Math.floor(Math.random() * 30);
-      output.style.paddingLeft = `${left}px`;
-      output.style.paddingRight = `${right}px`;
     }
 
     function changeColorWithRhythm() {
-      const beatTimings = [700, 400, 300];
-      let beatIndex = 0;
-      let currentBlurIndex = displayChars.length - 1;
-
-      while (currentBlurIndex >= 0 &&
-        (displayChars[currentBlurIndex].isSpace || displayChars[currentBlurIndex].stroke >= 10)) {
-        currentBlurIndex--;
-      }
+      const timings = [700, 400, 300];
+      let beat = 0;
 
       function nextBeat() {
+        output.style.paddingLeft = `${Math.random() * 30 | 0}px`;
+        output.style.paddingRight = `${Math.random() * 30 | 0}px`;
 
-        shakeTextOutput();
-
-        if (currentBlurIndex >= 0) {
-          const obj = displayChars[currentBlurIndex];
-          if (obj && !obj.isSpace && obj.stroke < 10) {
-            obj.stroke += 1;
-
-            if (obj.stroke >= 10) {
-              do {
-                currentBlurIndex--;
-              } while (
-                currentBlurIndex >= 0 &&
-                (displayChars[currentBlurIndex]?.isSpace || displayChars[currentBlurIndex]?.stroke >= 10)
-              );
-            }
-          }
+        let i = displayChars.length - 1;
+        while (i >= 0 && (displayChars[i].isSpace || displayChars[i].stroke >= MAX_STROKE)) {
+          i--;
+        }
+        if (i >= 0) {
+          displayChars[i].stroke++;
         }
 
         updateDisplay();
 
         setTimeout(() => {
-          beatIndex = (beatIndex + 1) % beatTimings.length;
+          beat = (beat + 1) % timings.length;
           nextBeat();
-        }, beatTimings[beatIndex]);
+        }, timings[beat]);
       }
-
       nextBeat();
     }
 
     function insertRandomBitSpace() {
-      const spaceObj = getRandomBitSpace();
+      const unblurredCount = displayChars.filter(o => !o.isSpace && o.stroke < MAX_STROKE).length;
+      if (isAllBlurred || unblurredCount === 0) {
+        clearInterval(bitInterval);
+        return;
+      }
 
-      if (displayChars.length > 0 && displayChars[displayChars.length - 1].isSpace) {
+      const spaceObj = getRandomBitSpace();
+      if (displayChars.length && displayChars.at(-1).isSpace) {
         displayChars.pop();
       }
 
-      const insertIndex = Math.floor(Math.random() * (displayChars.length - 1));
-      displayChars.splice(insertIndex, 0, spaceObj);
+      const pos = Math.random() * (displayChars.length - 1) | 0;
+      displayChars.splice(pos, 0, spaceObj);
       hexQueue.push(spaceObj.hex);
 
       if (hexQueue.length === 4) {
-        const randomChar = selectedPoem[Math.floor(Math.random() * selectedPoem.length)];
-        displayChars.splice(insertIndex, 4, {
-          isSpace: false,
-          char: randomChar,
-          stroke: 10
-        });
+        const rnd = selectedPoem[Math.random() * selectedPoem.length | 0];
+        displayChars.splice(pos, 4, { char: rnd, stroke: MAX_STROKE, isSpace: false });
         hexQueue = [];
       }
 
@@ -215,49 +209,32 @@
     recognition.continuous = true;
     recognition.interimResults = false;
 
-    recognition.onresult = (event) => {
-      const result = event.results[event.results.length - 1];
-      const transcript = result[0].transcript.trim();
+    recognition.onresult = (evt) => {
+      const transcript = evt.results[evt.results.length - 1][0].transcript.trim();
       if (!transcript) return;
-
-      console.log("인식된 문장:", transcript);
-
       for (let i = 0; i < displayChars.length; i++) {
-        const obj = displayChars[i];
-        if (!obj.isSpace && transcript.includes(obj.char)) {
-          const spaceObj = getRandomBitSpace();
-          displayChars[i] = spaceObj;
-          hexQueue.push(spaceObj.hex);
-
+        const o = displayChars[i];
+        if (!o.isSpace && transcript.includes(o.char)) {
+          const sp = getRandomBitSpace();
+          displayChars[i] = sp;
+          hexQueue.push(sp.hex);
           if (hexQueue.length === 4) {
-            const randomChar = selectedPoem[Math.floor(Math.random() * selectedPoem.length)];
-            displayChars.splice(i - 3, 4, {
-              isSpace: false,
-              char: randomChar,
-              stroke: 0
-            });
+            const rnd = selectedPoem[Math.random() * selectedPoem.length | 0];
+            displayChars.splice(i - 3, 4, { char: rnd, stroke: 0, isSpace: false });
             hexQueue = [];
           }
         }
       }
-
       updateDisplay();
     };
-
-
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
-    };
-
-    recognition.onend = () => {
-      recognition.start();
-    };
+    recognition.onerror = e => console.error("Speech error:", e.error);
+    recognition.onend = () => recognition.start();
 
     function startRecognition() {
       updateDisplay();
       recognition.start();
       changeColorWithRhythm();
-      setInterval(insertRandomBitSpace, 2100);
+      bitInterval = setInterval(insertRandomBitSpace, BIT_INTERVAL_MS);
     }
 
     window.onload = startRecognition;
