@@ -35,10 +35,12 @@
     }
 
     body {
-      font-family: 'MapoGoldenPier', 'Noto Sans KR', sans-serif;
+      font-family: 'MapoGoldenPier', 'Noto Serif KR', sans-serif;
       background: #ffffff;
       display: flex;
       justify-content: center;
+      position: relative;
+      cursor: pointer;
     }
 
     .text-output {
@@ -87,14 +89,41 @@
       font-weight: 300;
       padding: 1rem;
       font-family: 'Noto Sans KR';
+      pointer-events: none;
+    }
+
+    #sourceText {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      width: 1px;
+      height: auto;
+      opacity: 0.001;
+      pointer-events: none;
+      user-select: none;
+      white-space: pre-wrap;
+    }
+
+    #statusHint {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-family: 'Noto Sans KR';
+      pointer-events: none;
+      font-size: 0.8rem;
+      font-weight: 300;
+      color: rgba(0, 0, 0, 0);
     }
   </style>
 </head>
 
-<body onclick="location.reload()">
+<body>
+  <div class="text-output" id="outputText" translate="no" aria-live="off"></div>
 
-  <div class="text-output" id="outputText"></div>
-  <footer>소리내어 읽어 보세요</footer>
+  <div id="sourceText" translate="yes"></div>
+
+  <div id="statusHint" translate="no">ready</div>
+  <footer>처언천히 또박또박 소리 내 읽어보세요</footer>
 
   <script>
     const MAX_STROKE = 2;
@@ -102,6 +131,22 @@
     const BIT_INTERVAL_MS = 1000;
 
     let isAllBlurred = false;
+    let isReloading = false;
+    let bitInterval;
+    let hexQueue = [];
+    let displayChars = [];
+    let currentSourceString = "";
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = "ko-KR";
+
+    const output = document.getElementById("outputText");
+    const source = document.getElementById("sourceText");
+    const statusHint = document.getElementById("statusHint");
+
 
     const poems = [
       `“의미 없는 노성을 토하며 두억시니들은 끊임없이 두 손으로, 혹 손이 없을 경우에는 입으로 물을 머금어 강물을 ‘파내었다.’ 당연한 일이지만 같은 부피의 흙에 대해서라면 소용이 있었을 그 방법도 거세게 흐르는 급류에는 아무런 영향을 끼치지 못하고 있었다.두억시니들은 아무리 퍼내어도 줄어들지 않는 강물에 난처해하고 분노했다. 그러나 두억시니는 그 짓을 멈추지 않았다. 수백의 두억시니가 강변에 몰려서서 강물을 퍼내고 있었고 그보다 많은 두억시니들이 그들의 배후에서 의미를 빚지 못하는 단어들로 주위를 소란스럽게 만들고 있었다. 무익한 목적에 바쳐진 과도한 노고가 자아내는 것은 웃음이나 슬픔뿐이다.” \n이영도의 ‘눈물을 마시는 새’ 중 발췌`,
@@ -111,17 +156,9 @@
       `무거운 해 늙어 태어나면 개나리 웃지요.  `,
       `크낙새 뿌리 무침? 파란 냄새 삼각형!  `,
       `팔짝 뛰는 토끼색 칠한 재채기 세 쌍만 던져!  `,
-      `‘의미를 빚지 못한 단어로 이루어진’ 글들은 소설 ‘눈물을 마시는 새’에 등장하는 두억시니의 대사이다. 소설 속 두억시니는 신을 잃은 종족이다. 이 종족은 이치에 어긋난 육체와 공백으로 얼룩진 정신을 가졌다. 두억시니 모두의 정신은 서로 연결되었으며 스스로를 ‘나’들이라고 지칭한다. 이 글을 쓴 글쓴이와 글을 낭독을 하는 화자이자 독자는 의미를 되지 못한 글을 통해 두억시니같은 ‘나’들이 된다. \n메타공백의 글쓴이 생각`,
+      `‘의미를 빚지 못한 단어로 이루어진’ 문장들은 소설 『눈물을 마시는 새』에 등장하는 두억시니의 대사이다. 공백으로 공백을 정의하기 적절한 텍스트로서 두억시니의 말을 인용했다. 소설 속 두억시니는 신을 잃은 종족이다. 이들은 이치에 어긋난 육체와 공백으로 얼룩진 정신을 가졌다. 두억시니 모두의 정신은 서로 연결되었으며 스스로를 ‘나’들이라고 지칭한다. 두억시니의 모순적 정체성은 공백과 닮았다. 이 글을 쓴 글쓴이와 화자이자 독자인 당신은 의미가 되지 못한 글을 통해 글자 사이의 공백이 된다. 두억시니 같은 ‘나’들이 된다.  \n메타공백의 글쓴이 생각`,
     ];
-    let shown = JSON.parse(localStorage.getItem('shownPoemIndexes')) || [];
-    if (shown.length >= poems.length) shown = [];
-    const avail = poems.map((_, i) => i).filter(i => !shown.includes(i));
-    const idx = avail[Math.floor(Math.random() * avail.length)];
-    shown.push(idx);
-    localStorage.setItem('shownPoemIndexes', JSON.stringify(shown));
-    const selectedPoem = poems[idx];
 
-    const output = document.getElementById("outputText");
     const whitespaceHexMap = {
       '\u200B': '0', '\u200C': '1', '\u200D': '2', '\u2060': '3',
       '\u00A0': '4', '\u2002': '5', '\u2003': '6', '\u2004': '7',
@@ -130,12 +167,18 @@
     };
     const whitespaceChars = Object.keys(whitespaceHexMap);
 
-    let displayChars = selectedPoem.split('').map(ch => ({ char: ch, stroke: 0, isSpace: false }));
-    let hexQueue = [];
-    let bitInterval;
+    function doReload() {
+      if (isReloading) return;
+      isReloading = true;
+      location.reload();
+    }
+
+    function setStatus(msg) {
+      if (statusHint) statusHint.textContent = msg;
+    }
 
     function getRandomBitSpace() {
-      const ch = whitespaceChars[Math.floor(Math.random() * whitespaceChars.length)];
+      const ch = whitespaceChars[(Math.random() * whitespaceChars.length) | 0];
       const hx = whitespaceHexMap[ch];
       return {
         isSpace: true,
@@ -147,38 +190,59 @@
     function updateDisplay() {
       output.innerHTML = displayChars.map(o => {
         if (o.isSpace) return o.html;
+        if (o.char === '\n') return '<br>';
         const strokePx = Math.min(o.stroke, MAX_STROKE);
         const blurPx = strokePx * BLUR_MULTIPLIER;
-        if (o.char === '\n') return '<br>';
         return `<span class="char" style="-webkit-text-stroke-width:${strokePx}px; filter: blur(${blurPx}px)">${o.char}</span>`;
       }).join('');
 
       const total = displayChars.filter(o => !o.isSpace).length;
       const blurred = displayChars.filter(o => !o.isSpace && o.stroke >= MAX_STROKE).length;
-
       if (!isAllBlurred && total > 0 && blurred === total) {
         isAllBlurred = true;
         clearInterval(bitInterval);
         recognition.stop();
-        location.reload();
+        doReload();
       }
     }
 
+    function insertRandomBitSpace() {
+      const unblurredCount = displayChars.filter(o => !o.isSpace && o.stroke < MAX_STROKE).length;
+      if (isAllBlurred || unblurredCount === 0) {
+        clearInterval(bitInterval);
+        return;
+      }
+
+      const spaceObj = getRandomBitSpace();
+
+      if (displayChars.length && displayChars.at(-1).isSpace) {
+        displayChars.pop();
+      }
+
+      const pos = (Math.random() * Math.max(1, displayChars.length - 1)) | 0;
+      displayChars.splice(pos, 0, spaceObj);
+      hexQueue.push(spaceObj.hex);
+
+      if (hexQueue.length === 4) {
+        const rndChar = currentSourceString[(Math.random() * currentSourceString.length) | 0] || ' ';
+        displayChars.splice(pos, 4, { char: rndChar, stroke: MAX_STROKE, isSpace: false });
+        hexQueue = [];
+      }
+
+      updateDisplay();
+    }
+
     function changeColorWithRhythm() {
-      const timings = [700, 400, 300];
+      const timings = [2500, 1900, 1600];
       let beat = 0;
 
       function nextBeat() {
-        output.style.paddingLeft = `${Math.random() * 30 | 0}px`;
-        output.style.paddingRight = `${Math.random() * 30 | 0}px`;
+        output.style.paddingLeft = `${(Math.random() * 30) | 0}px`;
+        output.style.paddingRight = `${(Math.random() * 30) | 0}px`;
 
         let i = displayChars.length - 1;
-        while (i >= 0 && (displayChars[i].isSpace || displayChars[i].stroke >= MAX_STROKE)) {
-          i--;
-        }
-        if (i >= 0) {
-          displayChars[i].stroke++;
-        }
+        while (i >= 0 && (displayChars[i].isSpace || displayChars[i].stroke >= MAX_STROKE)) i--;
+        if (i >= 0) displayChars[i].stroke++;
 
         updateDisplay();
 
@@ -190,49 +254,49 @@
       nextBeat();
     }
 
-    function insertRandomBitSpace() {
-      const unblurredCount = displayChars.filter(o => !o.isSpace && o.stroke < MAX_STROKE).length;
-      if (isAllBlurred || unblurredCount === 0) {
-        clearInterval(bitInterval);
-        return;
-      }
+    function guessLangFromText(s) {
+      const hasHira = /[\u3040-\u309F]/.test(s);
+      const hasKata = /[\u30A0-\u30FF]/.test(s);
+      const hasLatin = /[A-Za-z]/.test(s);
+      if (hasHira || hasKata) return "ja-JP";
+      if (hasLatin) return "en-US";
+      return "ko-KR";
+    }
 
-      const spaceObj = getRandomBitSpace();
-      if (displayChars.length && displayChars.at(-1).isSpace) {
-        displayChars.pop();
-      }
+    function rebuildFromSourceString(newString) {
+      currentSourceString = newString || "";
+      hexQueue = [];
+      isAllBlurred = false;
 
-      const pos = Math.random() * (displayChars.length - 1) | 0;
-      displayChars.splice(pos, 0, spaceObj);
-      hexQueue.push(spaceObj.hex);
+      displayChars = currentSourceString.split('').map(ch => ({
+        char: ch, stroke: 0, isSpace: false
+      }));
 
-      if (hexQueue.length === 4) {
-        const rnd = selectedPoem[Math.random() * selectedPoem.length | 0];
-        displayChars.splice(pos, 4, { char: rnd, stroke: MAX_STROKE, isSpace: false });
-        hexQueue = [];
+      const lang = guessLangFromText(currentSourceString);
+      if (recognition.lang !== lang) {
+        try { recognition.stop(); } catch { }
+        recognition.lang = lang;
+        try { recognition.start(); } catch { }
       }
 
       updateDisplay();
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.lang = "ko-KR";
-    recognition.continuous = true;
-    recognition.interimResults = false;
-
     recognition.onresult = (evt) => {
       const transcript = evt.results[evt.results.length - 1][0].transcript.trim();
       if (!transcript) return;
+
       for (let i = 0; i < displayChars.length; i++) {
         const o = displayChars[i];
         if (!o.isSpace && transcript.includes(o.char)) {
           const sp = getRandomBitSpace();
           displayChars[i] = sp;
           hexQueue.push(sp.hex);
+
           if (hexQueue.length === 4) {
-            const rnd = selectedPoem[Math.random() * selectedPoem.length | 0];
-            displayChars.splice(i - 3, 4, { char: rnd, stroke: 0, isSpace: false });
+            const rnd = currentSourceString[(Math.random() * currentSourceString.length) | 0] || ' ';
+            const start = Math.max(0, i - 3);
+            displayChars.splice(start, 4, { char: rnd, stroke: 0, isSpace: false });
             hexQueue = [];
           }
         }
@@ -240,16 +304,87 @@
       updateDisplay();
     };
     recognition.onerror = e => console.error("Speech error:", e.error);
-    recognition.onend = () => recognition.start();
+    recognition.onend = () => {
+      try { recognition.start(); } catch { }
+    };
 
-    function startRecognition() {
-      updateDisplay();
-      recognition.start();
-      changeColorWithRhythm();
-      bitInterval = setInterval(insertRandomBitSpace, BIT_INTERVAL_MS);
+    function debounce(fn, delay = 250) {
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), delay);
+      };
     }
 
-    window.onload = startRecognition;
+    const onSourceChanged = debounce(() => {
+      const translated = source.innerText || source.textContent || "";
+      setStatus(`LANG:${guessLangFromText(translated)}`);
+      rebuildFromSourceString(translated);
+    }, 300);
+
+    const mo = new MutationObserver(onSourceChanged);
+    mo.observe(source, {
+      characterData: true,
+      subtree: true,
+      childList: true
+    });
+
+    function start() {
+      let shown = JSON.parse(localStorage.getItem('shownPoemIndexes')) || [];
+      if (shown.length >= poems.length) shown = [];
+      const avail = poems.map((_, i) => i).filter(i => !shown.includes(i));
+      const idx = avail[Math.floor(Math.random() * avail.length)];
+      shown.push(idx);
+      localStorage.setItem('shownPoemIndexes', JSON.stringify(shown));
+
+      const selectedPoem = poems[idx];
+
+      source.textContent = selectedPoem;
+
+      setTimeout(() => {
+        const initial = source.innerText || source.textContent || "";
+        rebuildFromSourceString(initial);
+
+        try { recognition.start(); } catch { }
+        changeColorWithRhythm();
+        bitInterval = setInterval(insertRandomBitSpace, BIT_INTERVAL_MS);
+      }, 150);
+    }
+
+    document.body.addEventListener('click', doReload);
+    document.addEventListener('keydown', (e) => {
+      e.preventDefault();
+      doReload();
+    }, { passive: false });
+
+    let gamepadIndexes = [];
+    let prevButtonStates = {};
+    window.addEventListener('gamepadconnected', (e) => {
+      if (!gamepadIndexes.includes(e.gamepad.index)) gamepadIndexes.push(e.gamepad.index);
+      console.log('Gamepad connected:', e.gamepad.id);
+    });
+    window.addEventListener('gamepaddisconnected', (e) => {
+      gamepadIndexes = gamepadIndexes.filter(i => i !== e.gamepad.index);
+      console.log('Gamepad disconnected:', e.gamepad.id);
+    });
+    function pollGamepads() {
+      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+      gamepadIndexes.forEach(idx => {
+        const gp = pads[idx];
+        if (!gp) return;
+        gp.buttons.forEach((btn, bIndex) => {
+          const key = `${idx}_${bIndex}`;
+          const wasPressed = prevButtonStates[key] || false;
+          const isPressed = btn.pressed === true;
+          if (isPressed && !wasPressed) doReload();
+          prevButtonStates[key] = isPressed;
+        });
+      });
+      requestAnimationFrame(pollGamepads);
+    }
+    requestAnimationFrame(pollGamepads);
+
+    window.onload = start;
   </script>
 </body>
 
